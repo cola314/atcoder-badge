@@ -95,6 +95,8 @@ app.get("/", (req, res) => {
   // Check if data is already cached
   const cachedData = cache.get(userId);
   if (cachedData) {
+    res.setHeader("Content-Type", "image/svg+xml");
+    res.setHeader("Cache-Control", "public, max-age=3600");
     return res.send(cachedData);
   }
 
