@@ -4,6 +4,9 @@ const axios = require("axios");
 const app = express();
 const PORT = 3000;
 const ATCODER_API_BASE_URL = "https://atcoder.jp/users/";
+const NodeCache = require('node-cache');
+
+const cache = new NodeCache({ stdTTL: 3600 }); // Cache data for 1 hour (adjust as needed)
 
 const ratingInfo = [
   {
@@ -89,6 +92,12 @@ app.get("/", (req, res) => {
     return res.status(400).json({ error: "Missing user-id parameter" });
   }
 
+  // Check if data is already cached
+  const cachedData = cache.get(userId);
+  if (cachedData) {
+    return res.send(cachedData);
+  }
+
   axios
     .get(`${ATCODER_API_BASE_URL}${userId}/history/json`)
     .then((response) => {
@@ -102,15 +111,19 @@ app.get("/", (req, res) => {
 
       res.setHeader("Content-Type", "image/svg+xml");
       res.setHeader("Cache-Control", "public, max-age=3600");
-      res.send(
-        svgDataForGeneralRating(
-          rating,
-          topRatingInfo,
-          userId,
-          maxRating,
-          latestRating
-        )
+
+      const svgData = svgDataForGeneralRating(
+        rating,
+        topRatingInfo,
+        userId,
+        maxRating,
+        latestRating
       );
+  
+      // Cache the SVG data for this user ID
+      cache.set(userId, svgData);
+  
+      res.send(svgData);
     })
     .catch((error) => {
       console.error("Error fetching data from AtCoder API:", error);
